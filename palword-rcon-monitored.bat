@@ -2,13 +2,14 @@
 setlocal
 
 :: Set the paths and intervals
-set "palworld_path=E:\SteamLibrary\steamapps\common\PalServer"
-set "backup_path=E:\code\games\pal\backups"
-set "rcon_path=E:\code\games\pal\ARRCON.exe"  :: Add the path to your RCON tool here
-set interval=10800
+set "palworld_path=F:\SteamLibrary\steamapps\common\PalServer"
+rem F:\SteamLibrary\steamapps\common\PalServer\PalServer.exe -EpicApp=PalServer
+set "backup_path=F:\code\games\pal\backups"
+set "rcon_path=\\TOWER\Movies\ARRCON\ARRCON.exe"  :: Add the path to your RCON tool here
+set interval=14400
 set rcon_host=127.0.0.1
 set rcon_port=25575
-set rcon_password=your_password
+set rcon_password=password
 
 :: Initial start time
 set /a "start_time=%time:~0,2%*3600 + %time:~3,2%*60 + %time:~6,2%"
@@ -22,11 +23,12 @@ call :checkRestartTime
 tasklist | findstr /i "PalServer-Win64-Test-Cmd" > NUL
 if %errorlevel% neq 0 (
     echo [%date% %time%] PalServer-Win64-Test-Cmd.exe not running. Starting server...
-    start "" "%palworld_path%\PalServer.exe" -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS
+    start "" "%palworld_path%\PalServer.exe" -EpicApp=PalServer -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS
     :: Reset the start time
     set /a "start_time=%time:~0,2%*3600 + %time:~3,2%*60 + %time:~6,2%"
 )
-timeout /t 5
+::edit frequently to  monitor as your choice. For me 10 seconds.
+timeout /t 10
 goto monitorLoop
 
 :: Function to send RCON commands
@@ -68,17 +70,13 @@ echo [%date% %time%] Announcing server restart...
 call :sendRcon "Broadcast ServerRestartIn5min."
 timeout /t 120
 
+:: Save the game state before shutting down
+call :sendRcon "Broadcast Saving."
+call :sendRcon "save"
+call :sendRcon "Broadcast Saved."
+
 call :sendRcon "Broadcast ServerRestartIn3min."
 timeout /t 120
-
-call :sendRcon "Broadcast ServerRestartIn1min."
-timeout /t 60
-
-:: Save the game state before shutting down
-call :sendRcon "save"
-
-:: Shutdown command
-call :sendRcon "shutdown 0 ServerRestartIn1minLOGOUTNOW."
 
 :: Backup logic just before shutdown
 echo [%date% %time%] Backup server data...
@@ -94,10 +92,12 @@ set second=%timestamp:~4,2%
 set foldername=%year%-%month%-%day%_%hour%-%minute%-%second%
 xcopy "%palworld_path%\Pal\Saved" "%backup_path%\Backup_%foldername%" /E /H /C /I
 
-:: Restart the server with additional parameters
-echo [%date% %time%] Restart server...
-start "" "%palworld_path%\PalServer.exe" -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS
-echo [%date% %time%] Server restarted!
+call :sendRcon "Broadcast ServerRestartIn1min."
+timeout /t 60
+
+:: Shutdown command
+call :sendRcon "Broadcast ServerRestartIn1minLOGOUTNOW."
+call :sendRcon "DoExit"
 
 :: Reset start time
 set /a "start_time=%time:~0,2%*3600 + %time:~3,2%*60 + %time:~6,2%"
