@@ -3,14 +3,14 @@ setlocal
 
 :: Set the paths and intervals
 set "palworld_path=F:\SteamLibrary\steamapps\common\PalServer"
-rem F:\SteamLibrary\steamapps\common\PalServer\PalServer.exe -EpicApp=PalServer
 set "backup_path=F:\code\games\pal\backups"
 set "rcon_path=\\TOWER\Movies\ARRCON\ARRCON.exe"  :: Add the path to your RCON tool here
+set sevenzip_path="C:\Program Files\7-Zip\7z.exe" :: Add the path to your 7ZIP here
 set interval=14400
+set monitor_inv=10 :: Set check interval time here
 set rcon_host=127.0.0.1
 set rcon_port=25575
-set rcon_password=password
-
+set rcon_password=your_password
 :: Initial start time
 set /a "start_time=%time:~0,2%*3600 + %time:~3,2%*60 + %time:~6,2%"
 echo [%date% %time%] Starting server...
@@ -27,8 +27,7 @@ if %errorlevel% neq 0 (
     :: Reset the start time
     set /a "start_time=%time:~0,2%*3600 + %time:~3,2%*60 + %time:~6,2%"
 )
-::edit frequently to  monitor as your choice. For me 10 seconds.
-timeout /t 10
+timeout /t %monitor_inv%
 goto monitorLoop
 
 :: Function to send RCON commands
@@ -90,7 +89,8 @@ set hour=%timestamp:~0,2%
 set minute=%timestamp:~2,2%
 set second=%timestamp:~4,2%
 set foldername=%year%-%month%-%day%_%hour%-%minute%-%second%
-xcopy "%palworld_path%\Pal\Saved" "%backup_path%\Backup_%foldername%" /E /H /C /I
+%sevenzip_path% a -tzip "%backup_path%\Backup_%foldername%.zip" "%palworld_path%\Pal\Saved\SaveGames\0"
+echo Backup of %palworld_path%\Pal\Saved\SaveGames\0 completed at %backup_path%\Backup_%foldername%.zip
 
 call :sendRcon "Broadcast ServerRestartIn1min."
 timeout /t 60
